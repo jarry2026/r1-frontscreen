@@ -1,4 +1,4 @@
-# R1 Toolbox (Enhanced Fork)
+# R1 FrontScreen
 
 海康威视 R1 / R1X NAS 前置触摸屏的硬件管理工具：五页信息面板（概览/性能/硬盘/网络/系统）、Web 控制面板、智能风扇调速、天气展示。
 
@@ -32,12 +32,14 @@
 ### 方式 A：一键脚本（推荐，宿主机 systemd 服务）
 
 ```bash
-git clone https://github.com/mingyangbest/r1-toolbox-go.git
-cd r1-toolbox-go
+git clone https://github.com/mingyangbest/r1-frontscreen.git
+cd r1-frontscreen
 sudo ./install.sh
 ```
 
 脚本自动完成：系统依赖安装（SDL2、smartmontools 等）、编译、配置文件生成、systemd 服务注册。
+
+> 说明：仓库改名为 **R1 FrontScreen**，但服务名、二进制名、配置路径沿用上游的 `r1-toolbox`（`systemd` 单元 / `/usr/local/bin/r1-toolbox` / `/etc/r1-toolbox/`），从上游或旧版升级无需任何迁移。
 
 ```bash
 sudo systemctl start r1-toolbox    # 启动（开机自启默认开启）
