@@ -32,7 +32,7 @@
 ### 方式 A：一键脚本（推荐，宿主机 systemd 服务）
 
 ```bash
-git clone https://github.com/<YOUR_USERNAME>/r1-toolbox-go.git
+git clone https://github.com/mingyangbest/r1-toolbox-go.git
 cd r1-toolbox-go
 sudo ./install.sh
 ```
@@ -86,6 +86,24 @@ docker compose up -d screen   # privileged + /dev/fb0 + host 网络
 
 - 侧边 RGB 灯条：上游代码保留了 RGB 模块，但在 R1 前屏硬件上**未发现系统级软件控制通路**（实测内核 LED / I2C / ACPI 均无接口），灯效可能由屏体 MCU 硬件自带
 - 本程序为非官方项目，与海康威视、飞牛官方均无关联；刷写/安装产生的风险自负
+
+## 更新日志
+
+- **2026-09-27**：负载三态色（≤50% 绿 / >50% 琥珀黄 / ≥90% 砖红）覆盖全部负载位——概览与性能页双环、每核负载条与百分比文字、CPU 历史曲线、硬盘页容量环；温度与介质身份色保持独立语义
+- **2026-09-27**：性能与安全大版本——CPU 占用 89% → 2.1%、Web 令牌鉴权、数据竞争修复（`-race` 清零）、配置保存保留注释、Docker / docker-compose 部署
+
+## 项目结构
+
+```
+cmd/main.go            程序入口
+internal/ui/           屏幕渲染：canvas / textrender / theme / widgets / pages
+internal/monitor/      CPU / 内存 / 磁盘 / 温度采集（smartctl 30s TTL 缓存）
+internal/hardware/     背光、风扇曲线、触摸屏、hwmon 发现
+internal/web/          Web 控制面板（gin + 内嵌前端，令牌鉴权）
+internal/netinfo/      网络信息与天气（30 分钟刷新）
+internal/config/       配置热重载（yaml.Node 键级合并，保留注释与键序）
+web-ui/                Web 面板前端源码（Vue 3 + Vite）
+```
 
 ## 开发
 

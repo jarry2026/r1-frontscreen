@@ -8,7 +8,6 @@ build/
 
 # Go
 vendor/
-go.sum
 
 # 临时与备份文件（迭代过程产生的 .bak/.orig 一律不入库）
 *.log
