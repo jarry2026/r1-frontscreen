@@ -91,8 +91,11 @@ docker compose up -d screen   # privileged + /dev/fb0 + host 网络
 
 ## 更新日志
 
-- **2026-09-27**：负载三态色（≤50% 绿 / >50% 琥珀黄 / ≥90% 砖红）覆盖全部负载位——概览与性能页双环、每核负载条与百分比文字、CPU 历史曲线、硬盘页容量环；温度与介质身份色保持独立语义
-- **2026-09-27**：性能与安全大版本——CPU 占用 89% → 2.1%、Web 令牌鉴权、数据竞争修复（`-race` 清零）、配置保存保留注释、Docker / docker-compose 部署
+完整版本历史见 [CHANGELOG.md](CHANGELOG.md)(每个版本打 git tag 并发布 [Release](https://github.com/mingyangbest/r1-frontscreen/releases))。最近更新:
+
+- **v0.2.0 · 2026-10-28**:夜间天气图标——18:00~06:00 晴天画满月+星、多云画云后小月,卡面色相同步转冷
+- **v0.1.1 · 2026-10-12**:项目改名 R1 FrontScreen;修复 go.sum 缺失导致的编译失败
+- **v0.1.0 · 2026-09-27**:首发——CPU 占用 89% → 2.1%、负载三态色、Web 令牌鉴权、Docker 部署
 
 ## 项目结构
 
