@@ -1,6 +1,9 @@
 package ui
 
-import "math"
+import (
+	"math"
+	"time"
+)
 
 // ============================================================
 //  天气图形（彩色）
@@ -23,6 +26,11 @@ var (
 	wxFog      = C(157, 171, 184) // 雾（灰蓝）
 	wxHaze     = C(180, 166, 146) // 霾（土黄）
 	wxBolt     = C(250, 208, 106) // 闪电（金）
+
+	// 夜间（2026-10-28 洋哥：深夜晴天还挂着大太阳，观感违和 → 加月亮/夜云）
+	wxMoonHi = C(214, 222, 238) // 月亮亮面（冷银白）
+	wxMoonLo = C(148, 160, 186) // 月亮光晕 / 环形山（灰蓝银）
+	wxStar   = C(232, 238, 248) // 星（近白银）
 )
 
 // ------------------------------------------------------------
@@ -79,7 +87,15 @@ func fadeLine(c *Canvas, x0, x1, y, thick float64, col RGBA, aMax uint8) {
 // weatherAccent 取该天气类型的「代表色」，供卡片描边等点缀使用。
 // 与图标调色板同源 —— 这样整张天气卡的色相是统一的，
 // 雨天卡片泛蓝、晴天卡片泛金，一眼就能对上。
+// 夜间（18:00~06:00）晴/多云切冷银色相 —— 卡面、图标、描述色一起换，
+// 深夜不再泛白天的暖金。
 func weatherAccent(kind string) RGBA {
+	if isNight() {
+		switch kind {
+		case "sun", "cloud":
+			return wxMoonHi
+		}
+	}
 	switch kind {
 	case "sun":
 		return wxSunHi
@@ -98,14 +114,28 @@ func weatherAccent(kind string) RGBA {
 
 // DrawWeatherIcon 在 (cx,cy) 处以半径 r 绘制天气图形。
 // kind: sun / cloud / overcast / rain / snow / fog / thunder
+// 夜间（18:00~06:00 本地时间）sun→moon、cloud→cloudNight（2026-10-28 洋哥拍板）；
+// 雨/雪/雾/阴/雷不区分昼夜（云雨本无昼夜观感差异）。
 // t 为时间（秒），驱动全部动画。
 func DrawWeatherIcon(c *Canvas, cx, cy int, r float64, kind string, t float64) {
 	fx, fy := float64(cx), float64(cy)
+	if isNight() {
+		switch kind {
+		case "sun":
+			kind = "moon"
+		case "cloud":
+			kind = "cloudNight"
+		}
+	}
 	switch kind {
 	case "sun":
 		drawSun(c, fx, fy, r, t)
+	case "moon":
+		drawMoon(c, fx, fy, r, t)
 	case "cloud":
 		drawSunCloud(c, fx, fy, r, t)
+	case "cloudNight":
+		drawMoonCloud(c, fx, fy, r, t)
 	case "rain":
 		drawRain(c, fx, fy, r, t)
 	case "snow":
@@ -117,6 +147,52 @@ func DrawWeatherIcon(c *Canvas, cx, cy int, r float64, kind string, t float64) {
 	default: // overcast 及未知
 		drawOvercast(c, fx, fy, r, t)
 	}
+}
+
+// isNight 夜间判定：本地 18:00~06:00。
+// 天气源不提供日出日落，按固定时段切足够用（误差 = 冬夏日落差，可接受）。
+func isNight() bool {
+	h := time.Now().Hour()
+	return h >= 18 || h < 6
+}
+
+// ---- 夜晴：银白满月 + 环形山 + 三颗星 ----
+//
+// 与太阳同一套三层圆语法（光晕/底盘/亮面），换成冷银色相；
+// 不扣月牙（画布没有减法混合，用底色圆盖会污染渐变卡面），
+// 满月 + 环形山的识别度同样足够。星星各自相位"闪烁"——
+// 图标静态化（相位冻结 2.856s）后亮度固定但互不相同，静态看也自然。
+func moonDisc(c *Canvas, cx, cy, r float64) {
+	c.FillCircle(cx, cy, r*0.58, WithA(wxMoonLo, 38)) // 光晕
+	c.FillCircle(cx, cy, r*0.44, WithA(wxMoonLo, 88)) // 过渡
+	c.FillCircle(cx, cy, r*0.36, wxMoonHi)            // 月盘
+	// 环形山：固定位置的三枚低alpha小圆
+	c.FillCircle(cx-r*0.10, cy-r*0.07, r*0.075, WithA(wxMoonLo, 90))
+	c.FillCircle(cx+r*0.09, cy+r*0.10, r*0.055, WithA(wxMoonLo, 78))
+	c.FillCircle(cx+r*0.11, cy-r*0.13, r*0.042, WithA(wxMoonLo, 66))
+}
+
+func drawMoon(c *Canvas, cx, cy, r, t float64) {
+	moonDisc(c, cx, cy-r*0.04, r)
+	// 三颗星：位置错开月盘，亮度各自缓慢呼吸（静态冻结后互不相同）
+	stars := [][2]float64{
+		{-0.62, -0.55}, {0.66, -0.40}, {0.28, 0.62},
+	}
+	for i, s := range stars {
+		tw := 0.5 + 0.5*math.Sin(t*(0.9+0.23*float64(i))+float64(i)*2.1)
+		sr := r * (0.052 + 0.020*tw)
+		c.FillCircle(cx+s[0]*r, cy+s[1]*r, sr, WithA(wxStar, clampByte((0.45+0.5*tw)*255)))
+		c.FillCircle(cx+s[0]*r, cy+s[1]*r, sr*0.45, wxStar)
+	}
+}
+
+// ---- 夜间多云：云后探出小月亮 ----
+// 结构与 drawSunCloud 完全同构：小月盘 + 云体漂移，光芒换成月亮自带的静默光晕。
+func drawMoonCloud(c *Canvas, cx, cy, r, t float64) {
+	moonDisc(c, cx+r*0.34, cy-r*0.36, r*0.52)
+	off := wobble(t, 0.46) * r * 0.105
+	sc := 1 + 0.020*math.Sin(t*0.52)
+	cloudBody(c, cx+off, cy+r*0.12, r*1.34*sc, 0.90)
 }
 
 // ---- 云形状掩码 ----

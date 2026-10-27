@@ -549,13 +549,21 @@ type DataDamaged interface {
 
 // wxStampOf 天气快照指纹：天气卡上显示的每一个字段都参与。
 // 任何一个变了都意味着"天气卡不再是上一帧的样子"，必须整卡重画。
+// 末位附带昼夜位（isNight）：天气数据没变但跨过 18:00/06:00 时段边界时，
+// 图标（太阳↔月亮）与卡面色相要换 —— 不入指纹的话静态页永远不会重画。
 func wxStampOf(d *DrawCtx) string {
 	w := d.WeatherNow()
 	if !w.OK {
 		return ""
 	}
-	return fmt.Sprintf("%s|%s|%s|%.1f|%.1f|%.1f|%d",
+	s := fmt.Sprintf("%s|%s|%s|%.1f|%.1f|%.1f|%d",
 		w.Kind, w.Desc, w.City, w.TempC, w.MinC, w.MaxC, w.Humidity)
+	if isNight() {
+		s += "|n"
+	} else {
+		s += "|d"
+	}
+	return s
 }
 
 // planFrame 静止帧的三选一决策：跳帧 / 局部 / 全屏。
